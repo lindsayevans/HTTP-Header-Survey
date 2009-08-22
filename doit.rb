@@ -6,6 +6,7 @@
 # Requires ccsv: http://github.com/fauna/ccsv/tree/master
 #
 # TODO:
+#  - batching so we can start/stop
 #  - grab top sites CSV automagically
 #  - follow redirects
 #  - emulate a real browser so we get 'proper' results
@@ -22,16 +23,19 @@ date = DateTime.now
 results_filename = "results-#{date.strftime("%Y%m")}"
 
 Ccsv.foreach(top_sites_file) do |values|
-    domain = values[1]
 
-    puts "checking #{values[0]} #{domain}"
+    begin
+	domain = values[1]
 
-    uri = URI.parse "http://#{domain}/"
-    response = Net::HTTP.get_response uri
+	puts "checking #{values[0]} #{domain}"
 
-    fd = File.open(results_filename, "a")
-    fd.write YAML::dump(response)
+	uri = URI.parse "http://#{domain}/"
+	response = Net::HTTP.get_response uri
 
+	fd = File.open(results_filename, "a")
+	fd.write YAML::dump(response)
+	rescue
+    end
 #    break if values[0].to_i > 3
 
 end
