@@ -75,17 +75,17 @@ end
 
 
 Ccsv.foreach(top_sites_file) do |values|
-	domain = values[1]
+    domain = values[1]
 
-	puts "checking #{values[0]} #{domain}"
+    puts "checking #{values[0]} #{domain}"
 
-	uri = "http://#{domain}/"
-	response = fetch(uri)
-	response[:domain] = domain
-#puts YAML::dump(response)
-	fd = File.open(results_filename, "a")
-	fd.write YAML::dump(response)
-	fd.close
+    uri = "http://#{domain}/"
+    response = fetch(uri)
+    response[:domain] = domain
+
+    fd = File.open(results_filename, "a")
+    fd.write YAML::dump(response)
+    fd.close
     break if values[0].to_i == 5000
 
 end
