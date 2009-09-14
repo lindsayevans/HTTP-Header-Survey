@@ -19,8 +19,8 @@ require 'ccsv'
 require 'net/http'
 require 'yaml'
 
-date = DateTime.now
-results_filename = "results-#{date.strftime("%Y%m")}"
+start_date = DateTime.now
+results_filename = "results-#{start_date.strftime("%Y%m")}"
 
 Ccsv.foreach(top_sites_file) do |values|
 
@@ -33,11 +33,28 @@ Ccsv.foreach(top_sites_file) do |values|
 	response = Net::HTTP.get_response uri
 
 	fd = File.open(results_filename, "a")
-	fd.write YAML::dump(response)
-	rescue
+	fd.write YAML::dump({
+	    :domain => domain,
+	    :code => response.code,
+	    :headers => response.header.to_hash, 
+	    :http_version => response.http_version,
+	    :message => response.message
+	})
+	#fd.write YAML::dump(response)
+	rescue => e
+	    puts 'Exception:'
+	    puts YAML::dump(e)
+	rescue Timeout::Error => e
+	    puts 'Timeout error:'
+	    puts YAML::dump(e)
+
     end
-#    break if values[0].to_i > 3
+    #break if values[0].to_i > 1
 
 end
 
+end_date = DateTime.now
+
+puts "Start date: #{start_date}"
+puts "End date: #{end_date}"
 
