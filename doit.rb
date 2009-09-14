@@ -27,7 +27,7 @@ require 'net/http'
 require 'yaml'
 
 start_date = DateTime.now
-results_filename = "results-#{start_date.strftime("%Y%m")}"
+results_filename = "tmp/results-#{start_date.strftime("%Y%m")}"
 
 
 def fetch(uri, limit = 10)
