@@ -9,13 +9,17 @@
 #  - batching so we can start/stop
 #  - grab top sites CSV automagically
 #  - emulate a real browser so we get 'proper' results
-#  - fetch redirects to /foo properly
+#  - fetch redirects to /foo properly (do in Request block, should be able to send UA header too)
+#74 dailymotion.com
+#Exception:
+#--- !ruby/exception:NoMethodError 
+#message: "undefined method `request_uri' for #<URI::Generic:0x976148 URL:/en>"
 #  - fix this 
 # checking 97 nasza-klasa.pl
 # doit.rb:73: undefined method `[]=' for nil:NilClass (NoMethodError)
 #	from doit.rb:66:in `foreach'
 #	from doit.rb:66
-#  
+#  (something to do with the dash???)
 #
 
 top_sites_file = "top-1m.csv"
