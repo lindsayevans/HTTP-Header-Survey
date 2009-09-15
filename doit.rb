@@ -8,22 +8,17 @@
 # TODO:
 #  - batching so we can start/stop
 #  - grab top sites CSV automagically
-#  - emulate a real browser so we get 'proper' results
-#  - fetch redirects to /foo properly (do in Request block, should be able to send UA header too)
-#74 dailymotion.com
-#Exception:
-#--- !ruby/exception:NoMethodError 
-#message: "undefined method `request_uri' for #<URI::Generic:0x976148 URL:/en>"
 #  - fix this 
 # checking 97 nasza-klasa.pl
 # doit.rb:73: undefined method `[]=' for nil:NilClass (NoMethodError)
 #	from doit.rb:66:in `foreach'
 #	from doit.rb:66
-#  (something to do with the dash???)
+#  (something to do with the dash??? or maybe not...)
 #
 
 top_sites_file = "top-1m.csv"
-user_agent = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-GB; rv:1.9.1.2) Gecko/20090729 Firefox/3.5.2"
+#top_sites_file = "test.csv"
+@user_agent = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-GB; rv:1.9.1.2) Gecko/20090729 Firefox/3.5.2"
 
 require 'rubygems'
 require 'ccsv'
@@ -34,20 +29,23 @@ start_date = DateTime.now
 results_filename = "tmp/results-#{start_date.strftime("%Y%m")}"
 
 
-def fetch(uri, limit = 10)
+def fetch(domain, path = '/', limit = 10)
 
-    uri = URI.parse uri
-
+    #uri = URI.parse uri
+    
     if limit == 0
-	{:uri => uri.to_s, :message => "Reached redirect limit"}
+	{:domain => domain, :path => path, :message => "Reached redirect limit"}
     end
 
     begin
 
-	response = Net::HTTP.get_response uri
-
+	Net::HTTP.start(domain) {|http|
+	    req = Net::HTTP::Get.new(path, 'User-Agent' => @user_agent)
+	    @response = http.request(req)
+	}
+	response = @response
 	ret = {
-	    :uri => uri.to_s,
+	    :domain => domain, :path => path,
 	    :code => response.code,
 	    :headers => response.header.to_hash, 
 	    :http_version => response.http_version,
@@ -56,18 +54,19 @@ def fetch(uri, limit = 10)
 
 	case response
 	when Net::HTTPSuccess     then ret
-	when Net::HTTPRedirection then fetch(response['location'], limit - 1)
+	# TODO: Need to parse location here so we can do absolute or relative redirect
+	when Net::HTTPRedirection then fetch(domain, response['location'], limit - 1)
 	end
 
 	rescue => e
 	    puts 'Exception:'
 	    puts YAML::dump(e)
-	    {:uri => uri.to_s, :message => "Exception: #{e.message}"}
+	    {:domain => domain, :path => path, :message => "Exception: #{e.message}"}
 	    
 	rescue Timeout::Error => e
 	    puts 'Timeout error:'
 	    puts YAML::dump(e)
-	    {:uri => uri.to_s, :message => "Timeout error: #{e.message}"}
+	    {:domain => domain, :path => path, :message => "Timeout error: #{e.message}"}
 
     end
 
@@ -79,9 +78,7 @@ Ccsv.foreach(top_sites_file) do |values|
 
     puts "checking #{values[0]} #{domain}"
 
-    uri = "http://#{domain}/"
-    response = fetch(uri)
-    response[:domain] = domain
+    response = fetch(domain)
 
     fd = File.open(results_filename, "a")
     fd.write YAML::dump(response)
