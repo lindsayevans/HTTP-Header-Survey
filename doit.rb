@@ -8,6 +8,7 @@
 # TODO:
 #  - batching so we can start/stop
 #  - grab top sites CSV automagically
+#  - support HTTPS & different ports
 #  - fix this 
 # checking 97 nasza-klasa.pl
 # doit.rb:73: undefined method `[]=' for nil:NilClass (NoMethodError)
@@ -17,7 +18,7 @@
 #
 
 top_sites_file = "top-1m.csv"
-#top_sites_file = "test.csv"
+top_sites_file = "test.csv"
 @user_agent = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-GB; rv:1.9.1.2) Gecko/20090729 Firefox/3.5.2"
 
 require 'rubygems'
@@ -31,8 +32,13 @@ results_filename = "tmp/results-#{start_date.strftime("%Y%m")}"
 
 def fetch(domain, path = '/', limit = 10)
 
-    #uri = URI.parse uri
-    
+    # Need to parse location here so we can do absolute or relative redirect
+    uri = URI.parse path
+    uri.host = domain if uri.host.nil?
+    uri.path = path if uri.path.nil?
+    domain = uri.host
+    path = uri.path
+
     if limit == 0
 	{:domain => domain, :path => path, :message => "Reached redirect limit"}
     end
@@ -54,7 +60,6 @@ def fetch(domain, path = '/', limit = 10)
 
 	case response
 	when Net::HTTPSuccess     then ret
-	# TODO: Need to parse location here so we can do absolute or relative redirect
 	when Net::HTTPRedirection then fetch(domain, response['location'], limit - 1)
 	end
 
