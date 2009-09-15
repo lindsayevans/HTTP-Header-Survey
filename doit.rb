@@ -8,7 +8,10 @@
 # TODO:
 #  - batching so we can start/stop
 #  - grab top sites CSV automagically
-#  - support HTTPS & different ports
+#  - threading, so it won't take 22 days to do the whole lot
+#  - retry failed connections (count failures, keep looping til zero - with a retry limit)
+#  - constantise various bits
+#  - support HTTPS & different ports (need for blogger.com)
 #  - fix this 
 # checking 97 nasza-klasa.pl
 # doit.rb:73: undefined method `[]=' for nil:NilClass (NoMethodError)
@@ -18,7 +21,7 @@
 #
 
 top_sites_file = "top-1m.csv"
-top_sites_file = "test.csv"
+#top_sites_file = "test.csv"
 @user_agent = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-GB; rv:1.9.1.2) Gecko/20090729 Firefox/3.5.2"
 
 require 'rubygems'
@@ -38,18 +41,20 @@ def fetch(domain, path = '/', limit = 10)
     uri.path = path if uri.path.nil?
     domain = uri.host
     path = uri.path
+    @ssl = uri.is_a? URI::HTTPS
 
     if limit == 0
 	{:domain => domain, :path => path, :message => "Reached redirect limit"}
     end
 
     begin
-
-	Net::HTTP.start(domain) {|http|
+	http = Net::HTTP.new(domain, uri.port)
+	http.use_ssl = uri.is_a? URI::HTTPS
+	response = http.start {|http|
 	    req = Net::HTTP::Get.new(path, 'User-Agent' => @user_agent)
-	    @response = http.request(req)
+	    http.request(req)
 	}
-	response = @response
+	 Net::HTTP.finish
 	ret = {
 	    :domain => domain, :path => path,
 	    :code => response.code,
@@ -62,17 +67,6 @@ def fetch(domain, path = '/', limit = 10)
 	when Net::HTTPSuccess     then ret
 	when Net::HTTPRedirection then fetch(domain, response['location'], limit - 1)
 	end
-
-	rescue => e
-	    puts 'Exception:'
-	    puts YAML::dump(e)
-	    {:domain => domain, :path => path, :message => "Exception: #{e.message}"}
-	    
-	rescue Timeout::Error => e
-	    puts 'Timeout error:'
-	    puts YAML::dump(e)
-	    {:domain => domain, :path => path, :message => "Timeout error: #{e.message}"}
-
     end
 
 end
@@ -88,7 +82,7 @@ Ccsv.foreach(top_sites_file) do |values|
     fd = File.open(results_filename, "a")
     fd.write YAML::dump(response)
     fd.close
-    break if values[0].to_i == 5000
+    break if values[0].to_i == 7#5000
 
 end
 
