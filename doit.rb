@@ -9,9 +9,8 @@
 #  - batching so we can start/stop
 #  - grab top sites CSV automagically
 #  - threading, so it won't take 22 days to do the whole lot
-#  - retry failed connections (count failures, keep looping til zero - with a retry limit)
+#  - retry failed connections (count failures, keep looping til zero - with a retry limit; possibly try 'www.' if fail)
 #  - constantise various bits
-#  - support HTTPS & different ports (need for blogger.com)
 #  - fix this 
 # checking 97 nasza-klasa.pl
 # doit.rb:73: undefined method `[]=' for nil:NilClass (NoMethodError)
@@ -26,7 +25,7 @@ top_sites_file = "top-1m.csv"
 
 require 'rubygems'
 require 'ccsv'
-require 'net/http'
+require 'net/https'
 require 'yaml'
 
 start_date = DateTime.now
@@ -41,7 +40,6 @@ def fetch(domain, path = '/', limit = 10)
     uri.path = path if uri.path.nil?
     domain = uri.host
     path = uri.path
-    @ssl = uri.is_a? URI::HTTPS
 
     if limit == 0
 	{:domain => domain, :path => path, :message => "Reached redirect limit"}
@@ -54,9 +52,10 @@ def fetch(domain, path = '/', limit = 10)
 	    req = Net::HTTP::Get.new(path, 'User-Agent' => @user_agent)
 	    http.request(req)
 	}
-	 Net::HTTP.finish
 	ret = {
-	    :domain => domain, :path => path,
+	    :host => domain, :path => path,
+	    :port => uri.port, :use_ssl => http.use_ssl,
+	    :redirects => 10 - limit,
 	    :code => response.code,
 	    :headers => response.header.to_hash, 
 	    :http_version => response.http_version,
@@ -78,6 +77,7 @@ Ccsv.foreach(top_sites_file) do |values|
     puts "checking #{values[0]} #{domain}"
 
     response = fetch(domain)
+    response[:domain] = domain
 
     fd = File.open(results_filename, "a")
     fd.write YAML::dump(response)
