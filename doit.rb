@@ -1,23 +1,8 @@
-# 1. Parse http://s3.amazonaws.com/alexa-static/top-1m.csv.zip
-# 2. Crawl domains
-# 3. ???
-# 4. Profit!
+# HTTP Header Survey
+# Capturing HTTP responses from a bunch of the most popular websites
 #
-# Requires ccsv: http://github.com/fauna/ccsv/tree/master
-#
-# TODO:
-#  - batching so we can start/stop
-#  - grab top sites CSV automagically
-#  - threading, so it won't take 22 days to do the whole lot
-#  - retry failed connections (count failures, keep looping til zero - with a retry limit; possibly try 'www.' if fail)
-#  - constantise various bits
-#  - fix this 
-# checking 97 nasza-klasa.pl
-# doit.rb:73: undefined method `[]=' for nil:NilClass (NoMethodError)
-#	from doit.rb:66:in `foreach'
-#	from doit.rb:66
-#  (something to do with the dash??? or maybe not...)
-#
+# Copyright Lindsay Evans (I'll think of a real licene to use one day)
+# 
 
 top_sites_file = "top-1m.csv"
 #top_sites_file = "test.csv"
@@ -82,7 +67,7 @@ Ccsv.foreach(top_sites_file) do |values|
     fd = File.open(results_filename, "a")
     fd.write YAML::dump(response)
     fd.close
-    break if values[0].to_i == 7#5000
+    break if values[0].to_i == 5000
 
 end
 
