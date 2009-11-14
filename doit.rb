@@ -5,6 +5,7 @@
 # 
 
 top_sites_file = "top-1m.csv"
+maximum_domains = 5000
 #top_sites_file = "test.csv"
 @user_agent = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-GB; rv:1.9.1.2) Gecko/20090729 Firefox/3.5.2"
 
@@ -76,7 +77,7 @@ Ccsv.foreach(top_sites_file) do |values|
 	fd.write YAML::dump(response)
 	fd.close
     }
-    break if values[0].to_i == 5000
+    break if values[0].to_i == maximum_domains
 
 end
 threads.each { |t|  t.join }
