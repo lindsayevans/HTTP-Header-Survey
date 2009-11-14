@@ -11,27 +11,6 @@
 # TODO:
 #  - batching so we can start/stop
 #  - grab top sites CSV automagically
-#  - threading, so it won't take 22 days to do the whole lot
-#  - should probably capture all redirects, too 
 #  - retry failed connections (count failures, keep looping til zero - with a retry limit; possibly try 'www.' if fail)
 #  - constantise various bits
-#  - fix this 
-# checking 97 nasza-klasa.pl
-# doit.rb:73: undefined method `[]=' for nil:NilClass (NoMethodError)
-#   from doit.rb:66:in `foreach'
-#   from doit.rb:66
-#  (something to do with the dash??? or maybe not...)
-#  - and this:
-#checking 15 qq.com
-#/usr/local/lib/ruby/1.8/net/http.rb:1467:in `initialize': HTTP request path is empty (ArgumentError)
-#   from /usr/local/lib/ruby/1.8/net/http.rb:1585:in `initialize'
-#   from doit.rb:52:in `new'
-#   from doit.rb:52:in `fetch'
-#   from /usr/local/lib/ruby/1.8/net/http.rb:543:in `start'
-#   from doit.rb:51:in `fetch'
-#   from doit.rb:67:in `fetch'
-#   from doit.rb:79
-#   from doit.rb:74:in `foreach'
-#   from doit.rb:74
-#  
 

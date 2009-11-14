@@ -12,6 +12,7 @@ require 'rubygems'
 require 'ccsv'
 require 'net/https'
 require 'yaml'
+require 'ThreadPool'
 
 start_date = DateTime.now
 results_filename = "tmp/results-#{start_date.strftime("%Y%m")}"
@@ -25,6 +26,7 @@ def fetch(domain, path = '/', limit = 10)
     uri.path = path if uri.path.nil?
     domain = uri.host
     path = uri.path
+    path = '/' if path.empty?
 
     if limit == 0
 	{:domain => domain, :path => path, :message => "Reached redirect limit"}
@@ -48,28 +50,36 @@ def fetch(domain, path = '/', limit = 10)
 	}
 
 	case response
-	when Net::HTTPSuccess     then ret
-	when Net::HTTPRedirection then fetch(domain, response['location'], limit - 1)
+	    when Net::HTTPSuccess     then ret
+	    when Net::HTTPRedirection then fetch(domain, response['location'], limit - 1)
 	end
+
+    rescue Exception => e
+	{:domain => domain, :path => path, :message => e.message}
     end
 
 end
 
+threads = []
 
 Ccsv.foreach(top_sites_file) do |values|
-    domain = values[1]
 
-    puts "checking #{values[0]} #{domain}"
+    threads << Thread.new {
+	domain = values[1]
 
-    response = fetch(domain)
-    response[:domain] = domain
+	puts "checking #{values[0]} #{domain}"
 
-    fd = File.open(results_filename, "a")
-    fd.write YAML::dump(response)
-    fd.close
+	response = fetch(domain)
+	response[:domain] = domain
+
+	fd = File.open(results_filename, "a")
+	fd.write YAML::dump(response)
+	fd.close
+    }
     break if values[0].to_i == 5000
 
 end
+threads.each { |t|  t.join }
 
 end_date = DateTime.now
 
