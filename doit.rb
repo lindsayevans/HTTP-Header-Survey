@@ -5,7 +5,8 @@
 # 
 
 top_sites_file = "top-1m.csv"
-maximum_domains = 200
+maximum_domains = 1000
+@timeout_limit = 300
 #top_sites_file = "test.csv"
 @user_agent = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-GB; rv:1.9.1.2) Gecko/20090729 Firefox/3.5.2"
 @headers = {
@@ -32,24 +33,28 @@ def fetch(domain, path = '/', limit = 10)
     uri = URI.parse path
     uri.host = domain if uri.host.nil?
     uri.path = path if uri.path.nil?
+    uri.port = 80 if uri.port.nil?
     domain = uri.host
     path = uri.path
+    path = uri.path + '?' + uri.query if !uri.query.nil?
     path = '/' if path.empty?
 
-    if limit == 0
-	{:domain => domain, :path => path, :message => "Reached redirect limit"}
+    if limit <= 0
+	return {:domain => domain, :path => path, :message => "Reached redirect limit"}
     end
 
     begin
 	http = Net::HTTP.new(domain, uri.port)
 	http.use_ssl = uri.is_a? URI::HTTPS
 	http.verify_mode = OpenSSL::SSL::VERIFY_NONE if uri.is_a?(URI::HTTPS)
-	http.open_timeout = 5
-	http.read_timeout = 5
-	http.timeout = 5 if uri.is_a? URI::HTTPS
+	http.open_timeout = @timeout_limit
+	http.read_timeout = @timeout_limit
+	http.timeout = @timeout_limit if uri.is_a? URI::HTTPS
 	response = http.start {|http|
 	    req = Net::HTTP::Get.new(path, @headers)
-	    http.request(req)
+	    timeout(@timeout_limit + 1) {
+		http.request(req)
+	    }
 	}
 	ret = {
 	    :host => domain, :path => path,
@@ -67,7 +72,7 @@ def fetch(domain, path = '/', limit = 10)
 	end
 
     rescue Exception => e
-	{:domain => domain, :path => path, :message => e.message}
+	return {:path => path, :message => e.message, :code => "-1"}
     end
 
 end
@@ -76,6 +81,8 @@ end
 
 threads = []
 
+begin
+
 Ccsv.foreach(top_sites_file) do |values|
     threads << Thread.new {
 	domain = values[1]
@@ -83,7 +90,7 @@ Ccsv.foreach(top_sites_file) do |values|
 	puts "checking #{values[0]} #{domain}"
 
 	response = fetch(domain)
-	response = {:domain => domain, :path => "/", :message => "response.nil"} if response.nil?
+	response = {:path => "/", :message => "response is nil", :code => "-1"} if response.nil?
 	response[:domain] = domain
 
 	fd = File.open(results_filename, "a")
@@ -94,6 +101,10 @@ Ccsv.foreach(top_sites_file) do |values|
 
 end
 threads.each { |t|  t.join }
+
+rescue Exception => e
+puts YAML::dump(e)
+end
 
 end_date = DateTime.now
 
