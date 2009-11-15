@@ -5,22 +5,29 @@
 # 
 
 top_sites_file = "top-1m.csv"
-maximum_domains = 5000
+maximum_domains = 200
 #top_sites_file = "test.csv"
 @user_agent = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-GB; rv:1.9.1.2) Gecko/20090729 Firefox/3.5.2"
+@headers = {
+    'User-Agent' => @user_agent,
+    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language' => 'en-gb,en;q=0.5',
+    'Accept-Encoding' => 'gzip,deflate',
+    'Accept-Charset:' => 'SO-8859-1,utf-8;q=0.7,*;q=0.7',
+    'Keep-Alive' => '300',
+    'Connection' => 'keep-alive'
+}
 
 require 'rubygems'
 require 'ccsv'
 require 'net/https'
 require 'yaml'
-require 'ThreadPool'
 
 start_date = DateTime.now
 results_filename = "tmp/results-#{start_date.strftime("%Y%m")}"
 
 
 def fetch(domain, path = '/', limit = 10)
-
     # Need to parse location here so we can do absolute or relative redirect
     uri = URI.parse path
     uri.host = domain if uri.host.nil?
@@ -36,8 +43,12 @@ def fetch(domain, path = '/', limit = 10)
     begin
 	http = Net::HTTP.new(domain, uri.port)
 	http.use_ssl = uri.is_a? URI::HTTPS
+	http.verify_mode = OpenSSL::SSL::VERIFY_NONE if uri.is_a?(URI::HTTPS)
+	http.open_timeout = 5
+	http.read_timeout = 5
+	http.timeout = 5 if uri.is_a? URI::HTTPS
 	response = http.start {|http|
-	    req = Net::HTTP::Get.new(path, 'User-Agent' => @user_agent)
+	    req = Net::HTTP::Get.new(path, @headers)
 	    http.request(req)
 	}
 	ret = {
@@ -61,16 +72,18 @@ def fetch(domain, path = '/', limit = 10)
 
 end
 
+#fetch('www.delorie.com','http://www.delorie.com:81/some/url.txt')
+
 threads = []
 
 Ccsv.foreach(top_sites_file) do |values|
-
     threads << Thread.new {
 	domain = values[1]
 
 	puts "checking #{values[0]} #{domain}"
 
 	response = fetch(domain)
+	response = {:domain => domain, :path => "/", :message => "response.nil"} if response.nil?
 	response[:domain] = domain
 
 	fd = File.open(results_filename, "a")
