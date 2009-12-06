@@ -10,6 +10,14 @@ def count_occurrences ydoc, sym
     end
 end
 
+def count_header ydoc, sym
+    if ydoc.has_key? sym
+	v = ydoc[sym][0]#.split(' ').first
+	@counts[sym] = {} if !@counts.has_key? sym
+	@counts[sym][v] = @counts[sym].has_key?(v) ? @counts[sym][v] + 1 : 1
+    end
+end
+
 def print_results f
 
 File.open(f) do |yf|
@@ -20,6 +28,11 @@ File.open(f) do |yf|
 	count_occurrences ydoc, :use_ssl
 	count_occurrences ydoc, :http_version
 	count_occurrences ydoc, :port
+
+	if ydoc.has_key? :headers
+	    count_header ydoc[:headers], 'x-powered-by'
+	    #count_header ydoc[:headers], 'server'
+	end
     end
 end
 
