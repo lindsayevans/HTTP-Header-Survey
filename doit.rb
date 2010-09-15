@@ -23,9 +23,35 @@ require 'rubygems'
 require 'ccsv'
 require 'net/https'
 require 'yaml'
+require 'zip/zip'
+require 'net/http'
+require 'fileutils'
+
 
 start_date = DateTime.now
 results_filename = "tmp/results-#{start_date.strftime("%Y%m")}"
+
+# Download zip
+FileUtils.rm_f 'top-1m.csv.zip'
+FileUtils.rm_f 'top-1m.csv'
+
+puts 'Downloading zip...'
+Net::HTTP.start('s3.amazonaws.com') { |http|
+  resp = http.get('/alexa-static/top-1m.csv.zip')
+  open('top-1m.csv.zip', 'wb') { |file|
+    file.write(resp.body)
+  }
+}
+puts 'Done.'
+puts 'Unzipping...'
+
+
+Zip::ZipFile.open('top-1m.csv.zip') { |zipfile|
+  begin
+    zipfile.extract('top-1m.csv', 'top-1m.csv')
+  end
+}
+puts 'Done.'
 
 
 def fetch(domain, path = '/', limit = 10)
