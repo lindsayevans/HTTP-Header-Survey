@@ -27,7 +27,6 @@ require 'zip/zip'
 require 'net/http'
 require 'fileutils'
 
-
 start_date = DateTime.now
 results_filename = "tmp/results-#{start_date.strftime("%Y%m")}"
 
